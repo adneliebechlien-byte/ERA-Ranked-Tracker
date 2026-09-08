@@ -11,10 +11,11 @@ import type {
 // nøkkelen — det fungerer uansett hvilken server denne koden kjører på.
 const PROXY_BASE = "https://bsproxy.royaleapi.dev/v1";
 
-// Kun disse to type-verdiene er bekreftet å bety Ranked (verifisert mot
-// ekte battlelog-data 02.09.2026). "ranked" = Solo Showdown (FFA-format),
-// "soloRanked" = alle lagmoduser (Brawl Ball, Gem Grab, osv.).
-const RANKED_TYPES = new Set(["ranked", "soloRanked"]);
+// Kun lagbaserte rangerte moduser telles som "Ranked" i denne appen.
+// Solo/Duo Showdown Ranked (type: "ranked" i API-et — ja, forvirrende
+// navngitt av Supercell) er en helt separat, individuell stige som ikke
+// er relevant for ERA sin lagstatistikk, og ekskluderes bevisst.
+const RANKED_TYPES = new Set(["soloRanked"]);
 
 function encodeTag(tag: string): string {
   const withHash = tag.startsWith("#") ? tag : `#${tag}`;
