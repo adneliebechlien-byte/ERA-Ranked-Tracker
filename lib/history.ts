@@ -9,6 +9,7 @@
 import { fetchRawBattlelog, normalizeBattles } from "./brawlstars/client";
 import type { PlayerStats } from "./brawlstars/types";
 import { loadStoredBattlesForTag, saveNewBattles, type StoredBattle } from "./store";
+import { groupIntoSets } from "./stats";
 
 function computeStats(
   name: string,
@@ -45,14 +46,16 @@ export async function syncAndGetPlayerHistory(
 
     await saveNewBattles(tag, name, freshBattles);
     const allStored = await loadStoredBattlesForTag(tag);
+    const sets = groupIntoSets(allStored);
 
-    return computeStats(name, tag, allStored);
+    return computeStats(name, tag, sets);
   } catch (err) {
     // API-kallet feilet (nede, IP-blokkert, osv.) — vis historikken vi
     // allerede har lagret istedenfor å miste alt.
     const existing = await loadStoredBattlesForTag(tag);
+    const sets = groupIntoSets(existing);
     return {
-      ...computeStats(name, tag, existing),
+      ...computeStats(name, tag, sets),
       fetchError: err instanceof Error ? err.message : "Ukjent feil",
     };
   }

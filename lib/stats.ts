@@ -1,5 +1,5 @@
 import type { StoredBattle } from "./store";
-import type { NormalizedBattle } from "./brawlstars/types";
+import type { NormalizedBattle, Outcome } from "./brawlstars/types";
 
 export type MapAggregate = {
   map: string;
@@ -8,6 +8,60 @@ export type MapAggregate = {
   winrate: number;
   trend: number[];
 };
+
+// Grupperer enkelt-runder til faktiske Bo3-"sets". Brawl Stars Ranked
+// spilles best av 3 runder på samme map med samme brawler; API-et gir oss
+// hver runde separat, så vi må selv gjenkjenne hvilke runder som hører
+// sammen og telle dem som ÉN kamp med ett samlet resultat.
+//
+// Regel: påfølgende runder (kronologisk) med samme map + mode + brawler
+// hører til samme set, helt til én side har vunnet 2 runder (2-0 eller
+// 2-1) — da er settet avgjort, og neste runde starter et nytt set.
+export function groupIntoSets<T extends NormalizedBattle>(battles: T[]): T[] {
+  const sorted = [...battles].sort((a, b) =>
+    a.battleTime < b.battleTime ? -1 : 1
+  );
+
+  const sets: T[] = [];
+  let group: T[] = [];
+
+  function closeGroup() {
+    if (group.length === 0) return;
+    const wins = group.filter((b) => b.outcome === "win").length;
+    const losses = group.filter((b) => b.outcome === "loss").length;
+    const last = group[group.length - 1];
+    const outcome: Outcome =
+      wins > losses ? "win" : losses > wins ? "loss" : "draw";
+    const hasTrophyData = group.some((b) => b.trophyChange !== null);
+    const trophyChange = hasTrophyData
+      ? group.reduce((sum, b) => sum + (b.trophyChange ?? 0), 0)
+      : null;
+
+    sets.push({ ...last, outcome, trophyChange });
+    group = [];
+  }
+
+  for (const b of sorted) {
+    const prev = group[group.length - 1];
+    const sameContext =
+      prev &&
+      prev.map === b.map &&
+      prev.mode === b.mode &&
+      prev.brawlerId === b.brawlerId;
+
+    if (!sameContext) closeGroup();
+
+    group.push(b);
+
+    const wins = group.filter((x) => x.outcome === "win").length;
+    const losses = group.filter((x) => x.outcome === "loss").length;
+    if (wins >= 2 || losses >= 2) closeGroup();
+  }
+  closeGroup();
+
+  // Nyest først, som resten av appen forventer.
+  return sets.reverse();
+}
 
 export function winrateOverLast(battles: NormalizedBattle[], n: number): number {
   // battles må være sortert nyest først.

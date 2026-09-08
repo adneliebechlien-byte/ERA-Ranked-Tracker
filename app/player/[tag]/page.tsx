@@ -48,8 +48,8 @@ export default async function PlayerPage({
   const wr20 = winrateOverLast(battlesDesc, 20);
   const streak = currentStreak(battlesDesc);
 
-  const brawlerStats = aggregateBrawlers(stats.battles, 2);
-  const mapStats = aggregateByMap(stats.battles, 2);
+  const brawlerStats = aggregateBrawlers(stats.battles, 3);
+  const mapStats = aggregateByMap(stats.battles, 3);
   const bestMap = mapStats[0];
   const worstMap = mapStats.length > 0 ? mapStats[mapStats.length - 1] : undefined;
 
@@ -170,7 +170,7 @@ export default async function PlayerPage({
       <section className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-3">
           <h2 className="font-display font-bold">Brawlere</h2>
-          <p className="text-text-muted text-xs -mt-2">Minimum 2 kamper for å telle med</p>
+          <p className="text-text-muted text-xs -mt-2">Minimum 3 kamper for å telle med</p>
           {brawlerStats.length === 0 ? (
             <p className="text-text-muted text-sm">Ingen brawler har nok kamper ennå.</p>
           ) : (
@@ -204,7 +204,7 @@ export default async function PlayerPage({
           )}
 
           <h2 className="font-display font-bold mt-6">Maps</h2>
-          <p className="text-text-muted text-xs -mt-2">Minimum 2 kamper for å telle med</p>
+          <p className="text-text-muted text-xs -mt-2">Minimum 3 kamper for å telle med</p>
           {mapStats.length === 0 ? (
             <p className="text-text-muted text-sm">Ingen map har nok kamper ennå.</p>
           ) : (
