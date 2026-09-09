@@ -60,6 +60,10 @@ export type NormalizedBattle = {
   // selve rank-poengene, IKKE ekte trofeer. Ubekreftet 100%, men eneste
   // rimelige tolkning av feltet i denne konteksten.
   rating: number | null;
+  // De to andre spillerne på samme lag (kun team-format). Brukes til å
+  // finne "spilt med"-statistikk, uansett om personen er en ERA-spiller
+  // eller en tilfeldig lagkamerat.
+  teammates: { tag: string; name: string }[];
 };
 
 export type PlayerStats = {

@@ -14,6 +14,7 @@ create table if not exists ranked_battles (
   trophy_change integer,
   ranked_format text not null check (ranked_format in ('ffa', 'team')),
   rating integer, -- kun satt for ranked_format = 'team'; antatt rank-poeng (se lib/brawlstars/types.ts)
+  teammates jsonb default '[]'::jsonb, -- de to andre spillerne på laget: [{"tag": "...", "name": "..."}]
   created_at timestamptz default now(),
   unique (tag, battle_time)
 );

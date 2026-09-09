@@ -96,12 +96,16 @@ export function normalizeBattles(
         trophyChange,
         rankedFormat: "ffa",
         rating: null, // ekte troféer i FFA, ikke rank-poeng — ikke relevant som rating
+        teammates: [], // FFA har ingen faste lagkamerater
       });
       continue;
     }
 
     if (battle.type === "soloRanked" && battle.teams) {
-      const me = battle.teams.flat().find((p) => p.tag === tag);
+      const myTeam = battle.teams.find((team) =>
+        team.some((p) => p.tag === tag)
+      );
+      const me = myTeam?.find((p) => p.tag === tag);
       if (!me || !me.brawler) continue;
 
       const outcome =
@@ -110,6 +114,10 @@ export function normalizeBattles(
           : battle.result === "defeat"
           ? "loss"
           : "draw";
+
+      const teammates = (myTeam ?? [])
+        .filter((p) => p.tag !== tag)
+        .map((p) => ({ tag: p.tag, name: p.name }));
 
       normalized.push({
         battleTime: item.battleTime,
@@ -121,6 +129,7 @@ export function normalizeBattles(
         trophyChange: battle.trophyChange ?? null,
         rankedFormat: "team",
         rating: me.brawler.trophies ?? null,
+        teammates,
       });
     }
   }

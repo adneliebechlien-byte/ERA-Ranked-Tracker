@@ -26,6 +26,7 @@ type Row = {
   trophy_change: number | null;
   ranked_format: string;
   rating: number | null;
+  teammates: { tag: string; name: string }[] | null;
 };
 
 function rowToStoredBattle(row: Row): StoredBattle {
@@ -40,6 +41,7 @@ function rowToStoredBattle(row: Row): StoredBattle {
     trophyChange: row.trophy_change,
     rankedFormat: row.ranked_format as StoredBattle["rankedFormat"],
     rating: row.rating,
+    teammates: row.teammates ?? [],
   };
 }
 
@@ -49,7 +51,7 @@ export async function loadStoredBattlesForTag(
   const { data, error } = await getSupabase()
     .from("ranked_battles")
     .select(
-      "tag, player_name, battle_time, map, mode, brawler_id, brawler_name, outcome, trophy_change, ranked_format, rating"
+      "tag, player_name, battle_time, map, mode, brawler_id, brawler_name, outcome, trophy_change, ranked_format, rating, teammates"
     )
     .eq("tag", tag)
     .order("battle_time", { ascending: false });
@@ -84,6 +86,7 @@ export async function saveNewBattles(
     trophy_change: b.trophyChange,
     ranked_format: b.rankedFormat,
     rating: b.rating,
+    teammates: b.teammates,
   }));
 
   const { error, count } = await getSupabase()

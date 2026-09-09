@@ -89,6 +89,140 @@ export function currentStreak(battles: NormalizedBattle[]): {
   return { type: first, count };
 }
 
+export type PlayedWithStats = {
+  tag: string;
+  name: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winrate: number;
+};
+
+// Statistikk for ALLE lagkamerater vi har møtt (ERA-spillere OG
+// tilfeldige), ikke bare kombinasjoner mellom våre egne tre. Bruker
+// battleTime+map+mode som nøkkel for å unngå dobbelttelling når to
+// ERA-spillere begge rapporterer den samme kampen fra hvert sitt ståsted.
+export function playedWithStats(
+  allBattles: StoredBattle[],
+  minGames = 3
+): PlayedWithStats[] {
+  const seen = new Map<
+    string,
+    { tag: string; name: string; outcome: string }
+  >();
+
+  for (const b of allBattles) {
+    const matchKey = `${b.battleTime}|${b.map}|${b.mode}`;
+    for (const mate of b.teammates) {
+      const key = `${matchKey}|${mate.tag}`;
+      if (!seen.has(key)) {
+        seen.set(key, { tag: mate.tag, name: mate.name, outcome: b.outcome });
+      }
+    }
+  }
+
+  const byTag = new Map<
+    string,
+    { name: string; games: number; wins: number; losses: number }
+  >();
+
+  for (const entry of seen.values()) {
+    const existing = byTag.get(entry.tag) ?? {
+      name: entry.name,
+      games: 0,
+      wins: 0,
+      losses: 0,
+    };
+    existing.name = entry.name; // nyeste navn vinner (navn kan endres)
+    existing.games += 1;
+    if (entry.outcome === "win") existing.wins += 1;
+    if (entry.outcome === "loss") existing.losses += 1;
+    byTag.set(entry.tag, existing);
+  }
+
+  return Array.from(byTag.entries())
+    .map(([tag, v]) => ({
+      tag,
+      name: v.name,
+      games: v.games,
+      wins: v.wins,
+      losses: v.losses,
+      winrate: v.games > 0 ? (v.wins / v.games) * 100 : 0,
+    }))
+    .filter((p) => p.games >= minGames)
+    .sort((a, b) => b.games - a.games);
+}
+
+export type MapBrawlerAggregate = {
+  map: string;
+  totalGames: number;
+  totalWinrate: number;
+  topBrawlers: BrawlerAggregateLite[];
+};
+
+export type BrawlerAggregateLite = {
+  brawlerId: number;
+  brawlerName: string;
+  games: number;
+  wins: number;
+  winrate: number;
+};
+
+// Gruppert map -> topp 3 brawlere spilt på det mapet, til /maps-siden.
+export function aggregateMapsWithTopBrawlers(
+  battles: NormalizedBattle[],
+  minBrawlerSample = 2
+): MapBrawlerAggregate[] {
+  const byMap = new Map<
+    string,
+    {
+      games: number;
+      wins: number;
+      brawlers: Map<number, { name: string; games: number; wins: number }>;
+    }
+  >();
+
+  for (const b of battles) {
+    const entry = byMap.get(b.map) ?? { games: 0, wins: 0, brawlers: new Map() };
+    entry.games += 1;
+    if (b.outcome === "win") entry.wins += 1;
+
+    const brawlerEntry = entry.brawlers.get(b.brawlerId) ?? {
+      name: b.brawlerName,
+      games: 0,
+      wins: 0,
+    };
+    brawlerEntry.games += 1;
+    if (b.outcome === "win") brawlerEntry.wins += 1;
+    entry.brawlers.set(b.brawlerId, brawlerEntry);
+
+    byMap.set(b.map, entry);
+  }
+
+  return Array.from(byMap.entries())
+    .map(([map, v]) => {
+      const topBrawlers = Array.from(v.brawlers.entries())
+        .map(([brawlerId, bv]) => ({
+          brawlerId,
+          brawlerName: bv.name,
+          games: bv.games,
+          wins: bv.wins,
+          winrate: bv.games > 0 ? (bv.wins / bv.games) * 100 : 0,
+        }))
+        .filter((b) => b.games >= minBrawlerSample)
+        .sort((a, b) => b.winrate - a.winrate)
+        .slice(0, 3);
+
+      return {
+        map,
+        totalGames: v.games,
+        totalWinrate: v.games > 0 ? (v.wins / v.games) * 100 : 0,
+        topBrawlers,
+      };
+    })
+    .sort((a, b) => b.totalGames - a.totalGames);
+}
+
 export function aggregateByMap(
   battles: NormalizedBattle[],
   minSampleSize = 3

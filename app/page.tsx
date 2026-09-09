@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ROSTER, TEAM_NAME } from "@/lib/roster";
 import { aggregateBrawlers } from "@/lib/brawlstars/client";
 import { syncAndGetPlayerHistory } from "@/lib/history";
-import { aggregateByMap, teammateStats } from "@/lib/stats";
+import { aggregateByMap, playedWithStats } from "@/lib/stats";
 import type { PlayerStats } from "@/lib/brawlstars/types";
 import type { StoredBattle } from "@/lib/store";
 import { modeLabel, timeAgo } from "@/lib/format";
@@ -43,7 +43,7 @@ export default async function Home() {
   const topBrawlers = aggregateBrawlers(allBattles, 3).slice(0, 10);
   const topMaps = aggregateByMap(allBattles, 3).slice(0, 10);
   const nameByTag = Object.fromEntries(ROSTER.map((p) => [p.tag, p.name]));
-  const together = teammateStats(allBattles, nameByTag).filter((t) => t.games > 0);
+  const playedWith = playedWithStats(allBattles, 3);
 
   const combinedDesc = allBattles
     .slice()
@@ -152,7 +152,15 @@ export default async function Home() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <h2 className="font-display font-bold">Beste maps</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-bold">Beste maps</h2>
+            <Link
+              href="/maps"
+              className="text-accent text-xs hover:underline whitespace-nowrap"
+            >
+              Se alle maps →
+            </Link>
+          </div>
           <p className="text-text-muted text-xs -mt-2">Minimum 3 kamper for å telle med</p>
           {topMaps.length === 0 ? (
             <p className="text-text-muted text-sm">Ingen map har nok kamper ennå.</p>
@@ -185,28 +193,33 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Together + recent */}
+      {/* Played with + recent */}
       <section className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-3">
-          <h2 className="font-display font-bold">Sammen</h2>
+          <h2 className="font-display font-bold">Spilt med</h2>
           <p className="text-text-muted text-xs -mt-2">
-            Winrate når to eller flere av dere havner i samme rangerte lag
+            Alle lagkamerater (ERA eller tilfeldige) med minst 3 kamper sammen
           </p>
-          {together.length === 0 ? (
+          {playedWith.length === 0 ? (
             <p className="text-text-muted text-sm">
-              Ingen registrerte kamper der dere har spilt sammen ennå.
+              Ingen har nok kamper sammen med dere ennå.
             </p>
           ) : (
             <div className="rounded-lg border border-border overflow-hidden">
-              {together.map((t, i) => (
+              {playedWith.map((t, i) => (
                 <div
-                  key={t.tags.join("+")}
+                  key={t.tag}
                   className={`flex items-center justify-between px-4 py-3 text-sm ${
-                    i !== together.length - 1 ? "border-b border-border" : ""
+                    i !== playedWith.length - 1 ? "border-b border-border" : ""
                   } ${i % 2 === 1 ? "bg-panel-alt" : "bg-panel"}`}
                 >
-                  <span>{t.names.join(" + ")}</span>
-                  <div className="w-32">
+                  <div className="flex flex-col">
+                    <span>{t.name}</span>
+                    <span className="text-text-muted text-xs">
+                      {t.games} kamper · {t.wins}W-{t.losses}L
+                    </span>
+                  </div>
+                  <div className="w-28">
                     <WinrateBar winrate={t.winrate} />
                   </div>
                 </div>
